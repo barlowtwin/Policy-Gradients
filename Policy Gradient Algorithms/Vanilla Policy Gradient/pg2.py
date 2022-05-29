@@ -16,6 +16,7 @@ def Network(inp_dim, hidden_dim, act_dim):
 
 
 
+
 def train(env_name = 'CartPole-v0', hidden_dim = 32, lr = 1e-3, epochs = 50, batch_size = 5000, render = False):
 
 	env = gym.make(env_name)
@@ -30,6 +31,14 @@ def train(env_name = 'CartPole-v0', hidden_dim = 32, lr = 1e-3, epochs = 50, bat
 	def get_action(obs):
 		dist = Categorical(policy(obs))
 		return dist.sample().item()
+
+	def reward_to_go(rews):
+		n = len(rews)
+		rtgs = np.zeros_like(rews)
+		for i in reversed(range(n)):
+			rtgs[i] = rews[i] + (rtgs[i+1] if i+1 < n else 0)
+		return rtgs
+
 
 	def compute_loss(obs, actions, weights): # weights is R_tau
 		dist = Categorical(policy(obs))
@@ -74,7 +83,7 @@ def train(env_name = 'CartPole-v0', hidden_dim = 32, lr = 1e-3, epochs = 50, bat
 				batch_lens.append(ep_len)
 
 				# weight for log_probs
-				batch_weights += [ep_ret] * ep_len
+				batch_weights += list(reward_to_go(ep_rews))
 
 				# reset episode specific variables
 				obs = env.reset()
